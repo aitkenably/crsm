@@ -7,13 +7,23 @@ from rich.table import Table
 from crsm.cli.app import AppContext
 from crsm.repo import CrsmRepo
 
-ls_app = typer.Typer(help="List items")
+#ls_app = typer.Typer(help="List items")
 
-@ls_app.command()
-def main(
+def ls(
     ctx: typer.Context,
     limit: int = typer.Option(50, "--limit", "-n", help="Max rows"),
 ):
+    """
+       List CRSM items.
+
+       Displays items stored in the CRSM database, ordered by most recent
+       first. By default, results are shown in a human-readable table.
+
+       Examples:
+         crsm ls
+         crsm ls --limit 10
+         crsm ls --json
+    """
     appctx: AppContext = ctx.obj
     repo = CrsmRepo(appctx.db_path)
 

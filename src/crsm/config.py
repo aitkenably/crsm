@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 import os
 import tomllib
+import logging
 
 APP_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "crsm"
 DEFAULT_CONFIG_PATH = APP_DIR / "config.toml"
@@ -27,6 +28,9 @@ def load_config(path: Optional[Path]) -> AppConfig:
     # ensure parent dirs exist
     db_path.parent.mkdir(parents=True, exist_ok=True)
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
+
+    logging.info(f"Reading configuration from {cfg_path}")
+    logging.info(f"Database path is {db_path}")
 
     return AppConfig(db_path=db_path)
 
