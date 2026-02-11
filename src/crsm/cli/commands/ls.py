@@ -29,7 +29,7 @@ def ls(
 
     rows = repo.list_items(limit=limit)
 
-    table = Table(title="CRSM items")
+    table = Table()
     table.add_column("id")
     table.add_column("name")
     table.add_column("created")
