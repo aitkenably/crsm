@@ -1,0 +1,10 @@
+import logging
+
+def configure_logging(verbose: int = 0) -> None:
+    level = logging.WARNING
+    if verbose == 1:
+        level = logging.INFO
+    elif verbose >= 2:
+        level = logging.DEBUG
+
+    logging.basicConfig(level=level, format="%(levelname)s %(message)s")

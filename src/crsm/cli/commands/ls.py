@@ -1,0 +1,31 @@
+from __future__ import annotations
+
+import typer
+from rich import print
+from rich.table import Table
+
+from crsm.cli.app import AppContext
+from crsm.repo import CrsmRepo
+
+ls_app = typer.Typer(help="List items")
+
+@ls_app.command()
+def main(
+    ctx: typer.Context,
+    limit: int = typer.Option(50, "--limit", "-n", help="Max rows"),
+):
+    appctx: AppContext = ctx.obj
+    repo = CrsmRepo(appctx.db_path)
+
+    rows = repo.list_items(limit=limit)
+
+    table = Table(title="CRSM items")
+    table.add_column("id")
+    table.add_column("name")
+    table.add_column("created")
+
+    for r in rows:
+        table.add_row(str(r["id"]), r["name"], r["created_at"])
+
+    print(table)
+
