@@ -13,6 +13,11 @@ dependencies = [
   "rich>=13.0.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+]
+
 [project.scripts]
 crsm = "crsm.cli.app:main"
 
@@ -21,4 +26,5 @@ package-dir = {"" = "src"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-q"
 

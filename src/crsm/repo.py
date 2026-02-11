@@ -17,7 +17,7 @@ class CrsmRepo:
         with get_connection(self.db_path) as conn:
             cur = conn.execute(
                 "SELECT id, name, created_at FROM items ORDER BY created_at DESC LIMIT ?",
-                (limit,),ß
+                (limit,),
             )
             return cur.fetchall()
 
