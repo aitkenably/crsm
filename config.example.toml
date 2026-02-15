@@ -2,5 +2,5 @@
 [db]
 path = "/opt/crsm/crsm.db"
 
-[repo]
+[library]
 path = "/opt/crsm/library"
