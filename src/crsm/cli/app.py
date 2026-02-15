@@ -6,16 +6,20 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from crsm.config import load_config, AppConfig
-from crsm.db import get_connection, ensure_schema
+from rich import print
+
+from crsm.config import load_config, AppConfig, ConfigError
+from crsm.db import ensure_schema
 from crsm.logging_utils import configure_logging
 
 app = typer.Typer(no_args_is_help=True, help="coder-radio Station Manager CLI")
+
 
 @dataclass
 class AppContext:
     config: AppConfig
     db_path: Path
+
 
 @app.callback()
 def main_callback(
@@ -32,8 +36,22 @@ def main_callback(
 ):
     configure_logging(verbose=verbose)
 
-    config = load_config(config_path)
+    if config_path is not None and not config_path.exists():
+        print(f"[red]Error:[/red] Config file does not exist: {config_path}")
+        raise typer.Exit(1)
+
+    try:
+        config = load_config(config_path)
+    except ConfigError as e:
+        print(f"[red]Configuration error:[/red] {e}")
+        raise typer.Exit(1)
+
     final_db_path = db_path or config.db_path
+
+    if not final_db_path.parent.exists():
+        print(f"[red]Error:[/red] Database directory does not exist: {final_db_path.parent}")
+        raise typer.Exit(1)
+
     ensure_schema(final_db_path)
 
     ctx.obj = AppContext(config=config, db_path=final_db_path)

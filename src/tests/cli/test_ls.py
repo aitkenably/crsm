@@ -69,3 +69,17 @@ def test_ls_invalid_fields_exits(runner, seeded_db_path):
     r = runner.invoke(app, ["--db", str(seeded_db_path), "ls", "--fields", "foo"])
     assert r.exit_code == 1
     assert "Invalid field" in r.stdout
+
+
+def test_db_flag_missing_directory_exits_with_error(runner, tmp_path):
+    missing_db = tmp_path / "nonexistent" / "subdir" / "db.sqlite"
+    r = runner.invoke(app, ["--db", str(missing_db), "ls"])
+    assert r.exit_code == 1
+    assert "Database directory does not exist" in r.stdout
+
+
+def test_config_flag_missing_file_exits_with_error(runner, tmp_path):
+    missing_config = tmp_path / "nonexistent" / "config.toml"
+    r = runner.invoke(app, ["--config", str(missing_config), "ls"])
+    assert r.exit_code == 1
+    assert "Config file does not exist" in r.stdout
