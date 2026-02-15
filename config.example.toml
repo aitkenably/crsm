@@ -1,0 +1,6 @@
+
+[db]
+path = "/opt/crsm/crsm.db"
+
+[repo]
+path = "/opt/crsm/library"
