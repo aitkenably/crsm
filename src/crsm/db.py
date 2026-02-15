@@ -4,13 +4,12 @@ import sqlite3
 from pathlib import Path
 
 SCHEMA_SQL = """
-CREATE TABLE IF NOT EXISTS items (
+CREATE TABLE IF NOT EXISTS videos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  title TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_items_created_at ON items(created_at);
+CREATE INDEX IF NOT EXISTS idx_videos_title ON videos(title);
 """
 
 def get_connection(db_path: Path) -> sqlite3.Connection:

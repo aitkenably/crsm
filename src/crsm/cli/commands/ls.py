@@ -22,20 +22,18 @@ def ls(
        Examples:
          crsm ls
          crsm ls --limit 10
-         crsm ls --json
     """
     appctx: AppContext = ctx.obj
     repo = CrsmRepo(appctx.db_path)
 
-    rows = repo.list_items(limit=limit)
+    rows = repo.list_video(limit=limit)
 
     table = Table()
     table.add_column("id")
-    table.add_column("name")
-    table.add_column("created")
+    table.add_column("title")
 
     for r in rows:
-        table.add_row(str(r["id"]), r["name"], r["created_at"])
+        table.add_row(str(r["id"]), r["title"])
 
     print(table)
 
