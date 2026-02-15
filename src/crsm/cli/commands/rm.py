@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from pathlib import Path
 
 import typer
 from rich import print
 from rich.table import Table
 
 from crsm.cli.app import AppContext
+from crsm.library import CrsmLibrary
 from crsm.repo import CrsmRepo
 
 
@@ -32,6 +32,7 @@ def rm(
     """
     appctx: AppContext = ctx.obj
     repo = CrsmRepo(appctx.db_path)
+    library = CrsmLibrary(appctx.library_path)
 
     try:
         video = _resolve_video(repo, id_or_title)
@@ -72,7 +73,7 @@ def rm(
 
     file_errors = []
     if not keep_files:
-        file_errors = _delete_files(appctx.library_path, video_path, thumbnail_path)
+        file_errors = library.delete_video_files(video_path, thumbnail_path)
 
     print(f'Removed: "{video_title}"')
 
@@ -80,27 +81,6 @@ def rm(
         for err in file_errors:
             print(f"[yellow]Warning:[/yellow] {err}")
         raise typer.Exit(2)
-
-
-def _delete_files(library_path: Path, video_path: str, thumbnail_path: str) -> list[str]:
-    """Delete video and thumbnail files. Returns list of error messages."""
-    errors = []
-
-    video_file = library_path / "videos" / video_path
-    thumbnail_file = library_path / "thumbnails" / thumbnail_path
-
-    for filepath, desc in [(video_file, "video"), (thumbnail_file, "thumbnail")]:
-        if filepath.exists():
-            try:
-                filepath.unlink()
-                logging.info(f"Deleted {desc} file: {filepath}")
-            except OSError as e:
-                errors.append(f"Failed to delete {desc} file {filepath}: {e}")
-                logging.error(f"Failed to delete {desc} file {filepath}: {e}")
-        else:
-            logging.warning(f"{desc.capitalize()} file not found: {filepath}")
-
-    return errors
 
 
 class VideoNotFoundError(Exception):
