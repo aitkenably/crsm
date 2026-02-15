@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from pathlib import Path
 
 import typer
 from rich import print
@@ -49,6 +50,8 @@ def rm(
 
     video_id = video["id"]
     video_title = video["title"]
+    video_path = video["video_path"]
+    thumbnail_path = video["thumbnail_path"]
 
     if not yes:
         confirmed = typer.confirm(f'Remove "{video_title}"?', default=False)
@@ -67,10 +70,37 @@ def rm(
         print(f"[red]Error:[/red] Video not found (may have been already removed)")
         raise typer.Exit(1)
 
+    file_errors = []
     if not keep_files:
-        logging.warning("File deletion not yet implemented (schema lacks file paths)")
+        file_errors = _delete_files(appctx.library_path, video_path, thumbnail_path)
 
     print(f'Removed: "{video_title}"')
+
+    if file_errors:
+        for err in file_errors:
+            print(f"[yellow]Warning:[/yellow] {err}")
+        raise typer.Exit(2)
+
+
+def _delete_files(library_path: Path, video_path: str, thumbnail_path: str) -> list[str]:
+    """Delete video and thumbnail files. Returns list of error messages."""
+    errors = []
+
+    video_file = library_path / "videos" / video_path
+    thumbnail_file = library_path / "thumbnails" / thumbnail_path
+
+    for filepath, desc in [(video_file, "video"), (thumbnail_file, "thumbnail")]:
+        if filepath.exists():
+            try:
+                filepath.unlink()
+                logging.info(f"Deleted {desc} file: {filepath}")
+            except OSError as e:
+                errors.append(f"Failed to delete {desc} file {filepath}: {e}")
+                logging.error(f"Failed to delete {desc} file {filepath}: {e}")
+        else:
+            logging.warning(f"{desc.capitalize()} file not found: {filepath}")
+
+    return errors
 
 
 class VideoNotFoundError(Exception):

@@ -104,3 +104,91 @@ def test_rm_with_keep_files(runner, seeded_db_path):
     # Verify DB removal
     repo = CrsmRepo(seeded_db_path)
     assert repo.get_video_by_id(1) is None
+
+
+@pytest.fixture()
+def seeded_db_with_files(tmp_path: Path) -> tuple[Path, Path]:
+    """Create a DB and library with actual files."""
+    db_path = tmp_path / "test.db"
+    library_path = tmp_path / "library"
+
+    # Create library directories
+    videos_dir = library_path / "videos"
+    thumbnails_dir = library_path / "thumbnails"
+    videos_dir.mkdir(parents=True)
+    thumbnails_dir.mkdir(parents=True)
+
+    # Create actual files
+    video_file = videos_dir / "Test_Video.webm"
+    thumb_file = thumbnails_dir / "Test_Video.png"
+    video_file.write_text("fake video content")
+    thumb_file.write_text("fake thumbnail content")
+
+    # Set up database
+    ensure_schema(db_path)
+    repo = CrsmRepo(db_path)
+    repo.add_video("Test Video", "Test_Video.webm", "Test_Video.png")
+
+    return db_path, library_path
+
+
+def test_rm_deletes_files(runner, seeded_db_with_files):
+    db_path, library_path = seeded_db_with_files
+    video_file = library_path / "videos" / "Test_Video.webm"
+    thumb_file = library_path / "thumbnails" / "Test_Video.png"
+
+    # Verify files exist before removal
+    assert video_file.exists()
+    assert thumb_file.exists()
+
+    r = runner.invoke(app, [
+        "--db", str(db_path),
+        "--library", str(library_path),
+        "rm", "1", "--yes"
+    ])
+    assert r.exit_code == 0
+    assert 'Removed: "Test Video"' in r.stdout
+
+    # Verify files are deleted
+    assert not video_file.exists()
+    assert not thumb_file.exists()
+
+
+def test_rm_keep_files_preserves_files(runner, seeded_db_with_files):
+    db_path, library_path = seeded_db_with_files
+    video_file = library_path / "videos" / "Test_Video.webm"
+    thumb_file = library_path / "thumbnails" / "Test_Video.png"
+
+    r = runner.invoke(app, [
+        "--db", str(db_path),
+        "--library", str(library_path),
+        "rm", "1", "--yes", "--keep-files"
+    ])
+    assert r.exit_code == 0
+
+    # Verify files still exist
+    assert video_file.exists()
+    assert thumb_file.exists()
+
+
+def test_rm_missing_files_still_succeeds(runner, tmp_path):
+    """rm should succeed even if files don't exist on disk."""
+    db_path = tmp_path / "test.db"
+    library_path = tmp_path / "library"
+
+    # Create library directories but no files
+    (library_path / "videos").mkdir(parents=True)
+    (library_path / "thumbnails").mkdir(parents=True)
+
+    ensure_schema(db_path)
+    repo = CrsmRepo(db_path)
+    repo.add_video("Ghost Video", "ghost.webm", "ghost.png")
+
+    r = runner.invoke(app, [
+        "--db", str(db_path),
+        "--library", str(library_path),
+        "rm", "1", "--yes"
+    ])
+    # Should succeed - DB entry removed, missing files logged as warning
+    assert r.exit_code == 0
+    assert 'Removed: "Ghost Video"' in r.stdout
