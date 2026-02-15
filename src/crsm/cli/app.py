@@ -92,15 +92,10 @@ def main() -> None:
     app()
 
 # Register subcommands
-#from crsm.cli.commands.add import add_app
 from crsm.cli.commands.ls import ls
-#from crsm.cli.commands.rm import rm_app
-#from crsm.cli.commands.live import live_app
+from crsm.cli.commands.rm import rm
 
 app.command("ls")(ls)
+app.command("rm")(rm)
 
-#app.add_typer(add_app, name="add")
-#app.add_typer(ls_app, name="ls")
-#app.add_typer(rm_app, name="rm")
-#app.add_typer(live_app, name="live")
 

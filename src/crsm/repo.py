@@ -40,6 +40,16 @@ class CrsmRepo:
             cur = conn.execute(query, params)
             return cur.fetchall()
 
+    def get_video_by_id(self, video_id: int):
+        with get_connection(self.db_path) as conn:
+            cur = conn.execute("SELECT id, title FROM videos WHERE id = ?", (video_id,))
+            return cur.fetchone()
+
+    def get_videos_by_title(self, title: str) -> list:
+        with get_connection(self.db_path) as conn:
+            cur = conn.execute("SELECT id, title FROM videos WHERE title = ?", (title,))
+            return cur.fetchall()
+
     def remove_video(self, video_id: int) -> bool:
         with get_connection(self.db_path) as conn:
             cur = conn.execute("DELETE FROM videos WHERE id = ?", (video_id,))
