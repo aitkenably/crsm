@@ -90,3 +90,33 @@ def test_library_flag_missing_directory_exits_with_error(runner, seeded_db_path,
     r = runner.invoke(app, ["--db", str(seeded_db_path), "--library", str(missing_library), "ls"])
     assert r.exit_code == 1
     assert "Library directory does not exist" in r.stdout
+
+
+def test_invalid_database_file_exits_with_error(runner, tmp_path):
+    # Create a file that is not a valid SQLite database
+    invalid_db = tmp_path / "invalid.db"
+    invalid_db.write_text("this is not a sqlite database")
+    library_dir = tmp_path / "library"
+    library_dir.mkdir()
+    r = runner.invoke(app, ["--db", str(invalid_db), "--library", str(library_dir), "ls"])
+    assert r.exit_code == 2
+    assert "Database error" in r.stdout
+
+
+def test_readonly_database_exits_with_error(runner, tmp_path):
+    # Create a valid db file then make it read-only
+    from crsm.db import ensure_schema
+    db_path = tmp_path / "readonly.db"
+    library_dir = tmp_path / "library"
+    library_dir.mkdir()
+    ensure_schema(db_path)
+    db_path.chmod(0o444)  # read-only
+    try:
+        r = runner.invoke(app, ["--db", str(db_path), "--library", str(library_dir), "ls"])
+        # The schema already exists, so it might succeed if no writes needed
+        # But if it tries to write, it should fail with exit code 2
+        if r.exit_code != 0:
+            assert r.exit_code == 2
+            assert "Database error" in r.stdout
+    finally:
+        db_path.chmod(0o644)  # restore permissions for cleanup

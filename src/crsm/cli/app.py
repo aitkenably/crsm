@@ -1,6 +1,9 @@
 # src/crsm/cli/app.py
 from __future__ import annotations
 
+import logging
+import sqlite3
+
 import typer
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,7 +14,6 @@ from rich import print
 from crsm.config import load_config, AppConfig, ConfigError
 from crsm.db import ensure_schema
 from crsm.logging_utils import configure_logging
-import logging
 
 app = typer.Typer(no_args_is_help=True, help="coder-radio Station Manager CLI")
 
@@ -65,7 +67,24 @@ def main_callback(
     logging.info(f"Database path is {final_db_path}")
     logging.info(f"Library path is {final_library_path}")
 
-    ensure_schema(final_db_path)
+    try:
+        ensure_schema(final_db_path)
+    except sqlite3.DatabaseError as e:
+        print(f"[red]Database error:[/red] Invalid or corrupt database file: {final_db_path}")
+        logging.debug(f"SQLite DatabaseError: {e}")
+        raise typer.Exit(2)
+    except sqlite3.OperationalError as e:
+        error_msg = str(e).lower()
+        if "readonly" in error_msg or "permission" in error_msg:
+            print(f"[red]Database error:[/red] Cannot write to database file: {final_db_path}")
+        else:
+            print(f"[red]Database error:[/red] {e}")
+        logging.debug(f"SQLite OperationalError: {e}")
+        raise typer.Exit(2)
+    except sqlite3.Error as e:
+        print(f"[red]Database error:[/red] {e}")
+        logging.debug(f"SQLite Error: {e}")
+        raise typer.Exit(2)
 
     ctx.obj = AppContext(config=config, db_path=final_db_path, library_path=final_library_path)
 
