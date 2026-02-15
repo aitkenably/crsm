@@ -26,6 +26,8 @@ class AppConfig:
 def load_config(path: Optional[Path] = None) -> AppConfig:
     cfg_path = path or DEFAULT_CONFIG_PATH
 
+    logging.info(f"Config file path is {cfg_path}")
+
     db_path = DEFAULT_DB_PATH
     library_path = DEFAULT_LIBRARY_PATH
 
@@ -39,10 +41,6 @@ def load_config(path: Optional[Path] = None) -> AppConfig:
         raise ConfigError(f"Database directory does not exist: {db_path.parent}")
     if not library_path.exists():
         raise ConfigError(f"Library directory does not exist: {library_path}")
-
-    logging.info(f"Reading configuration from {cfg_path}")
-    logging.info(f"Database path is {db_path}")
-    logging.info(f"Library path is {library_path}")
 
     return AppConfig(db_path=db_path, library_path=library_path)
 

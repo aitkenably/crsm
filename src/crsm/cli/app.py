@@ -11,6 +11,7 @@ from rich import print
 from crsm.config import load_config, AppConfig, ConfigError
 from crsm.db import ensure_schema
 from crsm.logging_utils import configure_logging
+import logging
 
 app = typer.Typer(no_args_is_help=True, help="coder-radio Station Manager CLI")
 
@@ -19,6 +20,7 @@ app = typer.Typer(no_args_is_help=True, help="coder-radio Station Manager CLI")
 class AppContext:
     config: AppConfig
     db_path: Path
+    library_path: Path
 
 
 @app.callback()
@@ -29,6 +31,9 @@ def main_callback(
     ),
     db_path: Optional[Path] = typer.Option(
         None, "--db", help="Path to SQLite database file"
+    ),
+    library_path: Optional[Path] = typer.Option(
+        None, "--library", "-l", help="Path to video library directory"
     ),
     verbose: int = typer.Option(
         0, "--verbose", "-v", count=True, help="Increase verbosity (-v, -vv)"
@@ -47,14 +52,22 @@ def main_callback(
         raise typer.Exit(1)
 
     final_db_path = db_path or config.db_path
+    final_library_path = library_path or config.library_path
 
     if not final_db_path.parent.exists():
         print(f"[red]Error:[/red] Database directory does not exist: {final_db_path.parent}")
         raise typer.Exit(1)
 
+    if not final_library_path.exists():
+        print(f"[red]Error:[/red] Library directory does not exist: {final_library_path}")
+        raise typer.Exit(1)
+
+    logging.info(f"Database path is {final_db_path}")
+    logging.info(f"Library path is {final_library_path}")
+
     ensure_schema(final_db_path)
 
-    ctx.obj = AppContext(config=config, db_path=final_db_path)
+    ctx.obj = AppContext(config=config, db_path=final_db_path, library_path=final_library_path)
 
 def main() -> None:
     app()

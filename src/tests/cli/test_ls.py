@@ -83,3 +83,10 @@ def test_config_flag_missing_file_exits_with_error(runner, tmp_path):
     r = runner.invoke(app, ["--config", str(missing_config), "ls"])
     assert r.exit_code == 1
     assert "Config file does not exist" in r.stdout
+
+
+def test_library_flag_missing_directory_exits_with_error(runner, seeded_db_path, tmp_path):
+    missing_library = tmp_path / "nonexistent" / "library"
+    r = runner.invoke(app, ["--db", str(seeded_db_path), "--library", str(missing_library), "ls"])
+    assert r.exit_code == 1
+    assert "Library directory does not exist" in r.stdout
