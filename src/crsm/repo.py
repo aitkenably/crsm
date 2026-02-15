@@ -60,3 +60,27 @@ class CrsmRepo:
         with get_connection(self.db_path) as conn:
             cur = conn.execute("DELETE FROM videos WHERE id = ?", (video_id,))
             return cur.rowcount > 0
+
+    def get_video_by_path(self, video_path: str):
+        """Get a video entry by its video_path (filename)."""
+        with get_connection(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT id, title, video_path, thumbnail_path FROM videos WHERE video_path = ?",
+                (video_path,),
+            )
+            return cur.fetchone()
+
+    def update_video(
+        self, video_id: int, title: str, video_path: str, thumbnail_path: str
+    ) -> bool:
+        """
+        Update an existing video entry.
+
+        Returns True if a row was updated, False if video_id not found.
+        """
+        with get_connection(self.db_path) as conn:
+            cur = conn.execute(
+                "UPDATE videos SET title = ?, video_path = ?, thumbnail_path = ? WHERE id = ?",
+                (title, video_path, thumbnail_path, video_id),
+            )
+            return cur.rowcount > 0

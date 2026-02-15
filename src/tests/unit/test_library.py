@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
-from crsm.library import CrsmLibrary
+from crsm.library import (
+    CrsmLibrary,
+    SUPPORTED_VIDEO_EXTENSIONS,
+    ThumbnailGenerationError,
+)
 
 
 @pytest.fixture()
@@ -136,3 +141,150 @@ class TestCrsmLibraryDeleteVideoFiles:
         assert len(errors) == 2
         assert "video" in errors[0].lower()
         assert "thumbnail" in errors[1].lower()
+
+
+class TestSupportedExtensions:
+    def test_is_supported_extension_webm(self, tmp_path):
+        library = CrsmLibrary(tmp_path)
+        assert library.is_supported_extension(Path("video.webm")) is True
+
+    def test_is_supported_extension_mp4(self, tmp_path):
+        library = CrsmLibrary(tmp_path)
+        assert library.is_supported_extension(Path("video.mp4")) is True
+
+    def test_is_supported_extension_unsupported(self, tmp_path):
+        library = CrsmLibrary(tmp_path)
+        assert library.is_supported_extension(Path("file.txt")) is False
+        assert library.is_supported_extension(Path("file.pdf")) is False
+
+    def test_is_supported_extension_case_insensitive(self, tmp_path):
+        library = CrsmLibrary(tmp_path)
+        assert library.is_supported_extension(Path("video.MP4")) is True
+        assert library.is_supported_extension(Path("video.WebM")) is True
+
+
+class TestEnsureDirectories:
+    def test_ensure_directories_creates_dirs(self, tmp_path):
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+
+        assert not library.videos_dir.exists()
+        assert not library.thumbnails_dir.exists()
+
+        library.ensure_directories()
+
+        assert library.videos_dir.exists()
+        assert library.thumbnails_dir.exists()
+
+    def test_ensure_directories_idempotent(self, tmp_path):
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+
+        library.ensure_directories()
+        library.ensure_directories()  # Should not raise
+
+        assert library.videos_dir.exists()
+
+
+class TestImportVideo:
+    def test_import_video_move_success(self, tmp_path):
+        # Setup
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+        source_file = tmp_path / "source_video.webm"
+        source_file.write_text("fake video content")
+
+        # Execute
+        result = library.import_video(source_file, "dest_video.webm", move=True)
+
+        # Verify
+        assert result == library.videos_dir / "dest_video.webm"
+        assert result.exists()
+        assert not source_file.exists()  # Source was moved
+
+    def test_import_video_copy_success(self, tmp_path):
+        # Setup
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+        source_file = tmp_path / "source_video.webm"
+        source_file.write_text("fake video content")
+
+        # Execute
+        result = library.import_video(source_file, "dest_video.webm", move=False)
+
+        # Verify
+        assert result == library.videos_dir / "dest_video.webm"
+        assert result.exists()
+        assert source_file.exists()  # Source was preserved
+
+    def test_import_video_destination_exists_raises(self, tmp_path):
+        # Setup
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+        library.ensure_directories()
+
+        # Create existing file at destination
+        existing = library.videos_dir / "existing.webm"
+        existing.write_text("existing content")
+
+        source_file = tmp_path / "source.webm"
+        source_file.write_text("new content")
+
+        # Execute & verify
+        with pytest.raises(FileExistsError, match="Video already exists"):
+            library.import_video(source_file, "existing.webm", move=True)
+
+    def test_import_video_creates_videos_dir(self, tmp_path):
+        library_path = tmp_path / "new_library"
+        library = CrsmLibrary(library_path)
+
+        source_file = tmp_path / "video.webm"
+        source_file.write_text("content")
+
+        assert not library.videos_dir.exists()
+
+        library.import_video(source_file, "video.webm", move=True)
+
+        assert library.videos_dir.exists()
+
+
+class TestGenerateThumbnail:
+    def test_generate_thumbnail_video_not_found(self, tmp_path):
+        library = CrsmLibrary(tmp_path)
+        library.ensure_directories()
+
+        with pytest.raises(FileNotFoundError, match="Video file not found"):
+            library.generate_thumbnail("nonexistent.webm", "thumb.png")
+
+    def test_generate_thumbnail_ffmpeg_not_found(self, tmp_path):
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+        library.ensure_directories()
+
+        # Create a video file
+        video_path = library.videos_dir / "test.webm"
+        video_path.write_text("fake video")
+
+        # Mock subprocess.run to raise FileNotFoundError (ffmpeg not found)
+        with patch("crsm.library.subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("ffmpeg not found")
+
+            with pytest.raises(ThumbnailGenerationError, match="ffmpeg not found"):
+                library.generate_thumbnail("test.webm", "test.png")
+
+    def test_generate_thumbnail_ffmpeg_fails(self, tmp_path):
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+        library.ensure_directories()
+
+        # Create a video file
+        video_path = library.videos_dir / "test.webm"
+        video_path.write_text("fake video")
+
+        # Mock subprocess.run to return failure
+        with patch("crsm.library.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stderr = "Invalid input"
+
+            with pytest.raises(ThumbnailGenerationError, match="ffmpeg failed"):
+                library.generate_thumbnail("test.webm", "test.png")

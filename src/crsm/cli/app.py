@@ -92,9 +92,11 @@ def main() -> None:
     app()
 
 # Register subcommands
+from crsm.cli.commands.add import add
 from crsm.cli.commands.ls import ls
 from crsm.cli.commands.rm import rm
 
+app.command("add")(add)
 app.command("ls")(ls)
 app.command("rm")(rm)
 

@@ -1,7 +1,17 @@
 from __future__ import annotations
 
 import logging
+import shutil
+import subprocess
 from pathlib import Path
+
+SUPPORTED_VIDEO_EXTENSIONS = frozenset({
+    ".mp4", ".webm", ".mkv", ".avi", ".mov", ".flv", ".wmv", ".m4v"
+})
+
+
+class ThumbnailGenerationError(Exception):
+    """Raised when thumbnail generation fails."""
 
 
 class CrsmLibrary:
@@ -84,3 +94,115 @@ class CrsmLibrary:
             logging.error(error_msg)
 
         return errors
+
+    def ensure_directories(self) -> None:
+        """Create videos and thumbnails directories if they don't exist."""
+        self.videos_dir.mkdir(parents=True, exist_ok=True)
+        self.thumbnails_dir.mkdir(parents=True, exist_ok=True)
+
+    def is_supported_extension(self, path: Path) -> bool:
+        """Check if a file has a supported video extension."""
+        return path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS
+
+    def import_video(self, source: Path, dest_filename: str, move: bool = True) -> Path:
+        """
+        Import a video file into the library.
+
+        Args:
+            source: Path to the source video file
+            dest_filename: Filename to use in the library (without path)
+            move: If True, move the file; if False, copy it
+
+        Returns:
+            Path to the imported video file
+
+        Raises:
+            FileExistsError: If destination already exists
+            OSError: If import fails
+        """
+        self.ensure_directories()
+        dest_path = self.videos_dir / dest_filename
+
+        if dest_path.exists():
+            raise FileExistsError(f"Video already exists: {dest_path}")
+
+        if move:
+            shutil.move(str(source), str(dest_path))
+            logging.info(f"Moved video from {source} to {dest_path}")
+        else:
+            shutil.copy2(str(source), str(dest_path))
+            logging.info(f"Copied video from {source} to {dest_path}")
+
+        return dest_path
+
+    def generate_thumbnail(
+        self, video_filename: str, thumb_filename: str, timestamp: int = 60
+    ) -> Path:
+        """
+        Generate a thumbnail from a video file using ffmpeg.
+
+        Args:
+            video_filename: Name of the video file in the library
+            thumb_filename: Name for the thumbnail file
+            timestamp: Time in seconds to capture the frame (default 60)
+
+        Returns:
+            Path to the generated thumbnail
+
+        Raises:
+            ThumbnailGenerationError: If thumbnail generation fails
+            FileNotFoundError: If video file doesn't exist
+        """
+        self.ensure_directories()
+        video_path = self.videos_dir / video_filename
+        thumb_path = self.thumbnails_dir / thumb_filename
+
+        if not video_path.exists():
+            raise FileNotFoundError(f"Video file not found: {video_path}")
+
+        cmd = [
+            "ffmpeg",
+            "-y",  # Overwrite output
+            "-ss", str(timestamp),
+            "-i", str(video_path),
+            "-vframes", "1",
+            "-q:v", "2",
+            str(thumb_path),
+        ]
+
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode != 0:
+                # Try with timestamp 0 if the specified timestamp is beyond video length
+                if timestamp > 0:
+                    logging.warning(
+                        f"Thumbnail at {timestamp}s failed, trying at 0s"
+                    )
+                    cmd[3] = "0"
+                    result = subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                if result.returncode != 0:
+                    raise ThumbnailGenerationError(
+                        f"ffmpeg failed: {result.stderr}"
+                    )
+        except FileNotFoundError:
+            raise ThumbnailGenerationError(
+                "ffmpeg not found. Please install ffmpeg."
+            )
+
+        if not thumb_path.exists():
+            raise ThumbnailGenerationError(
+                f"Thumbnail was not created: {thumb_path}"
+            )
+
+        logging.info(f"Generated thumbnail: {thumb_path}")
+        return thumb_path

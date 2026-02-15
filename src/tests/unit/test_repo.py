@@ -130,3 +130,43 @@ def test_remove_video_returns_false_when_not_found(seeded_db_path):
 
     result = repo.remove_video(999)
     assert result is False
+
+
+def test_get_video_by_path_found(seeded_db_path):
+    repo = CrsmRepo(seeded_db_path)
+
+    video = repo.get_video_by_path("Chill_Beats.webm")
+    assert video is not None
+    assert video["title"] == "Chill Beats"
+    assert video["video_path"] == "Chill_Beats.webm"
+
+
+def test_get_video_by_path_not_found(seeded_db_path):
+    repo = CrsmRepo(seeded_db_path)
+
+    video = repo.get_video_by_path("nonexistent.webm")
+    assert video is None
+
+
+def test_update_video_success(seeded_db_path):
+    repo = CrsmRepo(seeded_db_path)
+
+    result = repo.update_video(
+        1, "Updated Title", "new_video.webm", "new_thumb.png"
+    )
+    assert result is True
+
+    # Verify the update
+    video = repo.get_video_by_id(1)
+    assert video["title"] == "Updated Title"
+    assert video["video_path"] == "new_video.webm"
+    assert video["thumbnail_path"] == "new_thumb.png"
+
+
+def test_update_video_not_found(seeded_db_path):
+    repo = CrsmRepo(seeded_db_path)
+
+    result = repo.update_video(
+        999, "Updated Title", "new_video.webm", "new_thumb.png"
+    )
+    assert result is False
