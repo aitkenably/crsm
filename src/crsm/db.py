@@ -6,7 +6,9 @@ from pathlib import Path
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS videos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL
+  title TEXT NOT NULL,
+  video_path TEXT NOT NULL, 
+  thumbnail_path TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_videos_title ON videos(title);

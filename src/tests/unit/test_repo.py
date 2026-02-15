@@ -109,8 +109,8 @@ def test_get_videos_by_title_no_match(seeded_db_path):
 
 def test_get_videos_by_title_multiple_matches(temp_db_path):
     repo = CrsmRepo(temp_db_path)
-    repo.add_video("Duplicate Title")
-    repo.add_video("Duplicate Title")
+    repo.add_video("Duplicate Title", "Duplicate_Title.webm", "Duplicate_Title.png")
+    repo.add_video("Duplicate Title", "Duplicate_Title.webm", "Duplicate_Title.png")
 
     videos = repo.get_videos_by_title("Duplicate Title")
     assert len(videos) == 2

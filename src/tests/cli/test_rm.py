@@ -14,9 +14,9 @@ def seeded_db_with_duplicates(tmp_path: Path) -> Path:
     db_path = tmp_path / "test.db"
     ensure_schema(db_path)
     repo = CrsmRepo(db_path)
-    repo.add_video("Unique Title")
-    repo.add_video("Duplicate Title")
-    repo.add_video("Duplicate Title")
+    repo.add_video("Unique Title", "Unique_Title.webm", "Unique_Title.png")
+    repo.add_video("Duplicate Title", "Duplicate_Title.webm", "Duplicate_Title.png")
+    repo.add_video("Duplicate Title", "Duplicate_Title.webm", "Duplicate_Title.png")
     return db_path
 
 

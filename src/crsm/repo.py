@@ -8,9 +8,9 @@ class CrsmRepo:
     def __init__(self, db_path: Path):
         self.db_path = db_path
 
-    def add_video(self, title: str) -> int:
+    def add_video(self, title: str, video_path: str, thumbnail_path: str) -> int:
         with get_connection(self.db_path) as conn:
-            cur = conn.execute("INSERT INTO videos(title) VALUES (?)", (title,))
+            cur = conn.execute("INSERT INTO videos(title, video_path, thumbnail_path) VALUES (?, ?, ?)", (title, video_path, thumbnail_path))
             return int(cur.lastrowid)
 
     def list_video(
