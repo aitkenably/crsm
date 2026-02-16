@@ -272,6 +272,27 @@ class TestGenerateThumbnail:
             with pytest.raises(ThumbnailGenerationError, match="ffmpeg not found"):
                 library.generate_thumbnail("test.webm", "test.png")
 
+    def test_generate_thumbnail_includes_scale_filter(self, tmp_path):
+        library_path = tmp_path / "library"
+        library = CrsmLibrary(library_path)
+        library.ensure_directories()
+
+        video_path = library.videos_dir / "test.webm"
+        video_path.write_text("fake video")
+        thumb_path = library.thumbnails_dir / "test.png"
+
+        with patch("crsm.library.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            thumb_path.write_text("fake thumbnail")
+
+            library.generate_thumbnail("test.webm", "test.png")
+
+            # Verify scale filter was included in ffmpeg command
+            call_args = mock_run.call_args[0][0]
+            assert "-vf" in call_args
+            vf_index = call_args.index("-vf")
+            assert call_args[vf_index + 1] == "scale=360:-1"
+
     def test_generate_thumbnail_ffmpeg_fails(self, tmp_path):
         library_path = tmp_path / "library"
         library = CrsmLibrary(library_path)

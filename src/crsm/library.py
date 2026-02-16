@@ -167,11 +167,16 @@ class CrsmLibrary:
 
         return dest_path
 
+    THUMBNAIL_WIDTH = 360
+
     def generate_thumbnail(
         self, video_filename: str, thumb_filename: str, timestamp: int = 60
     ) -> Path:
         """
         Generate a thumbnail from a video file using ffmpeg.
+
+        The thumbnail is resized to a width of 360 pixels while maintaining
+        aspect ratio.
 
         Args:
             video_filename: Name of the video file in the library
@@ -198,6 +203,7 @@ class CrsmLibrary:
             "-ss", str(timestamp),
             "-i", str(video_path),
             "-vframes", "1",
+            "-vf", f"scale={self.THUMBNAIL_WIDTH}:-1",
             "-q:v", "2",
             str(thumb_path),
         ]
