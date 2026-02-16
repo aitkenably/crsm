@@ -59,6 +59,25 @@ def test_ls_with_fields_title_only(runner, seeded_db_path):
     assert "Chill Beats" in r.stdout
 
 
+def test_ls_with_fields_wildcard(runner, seeded_db_path):
+    r = runner.invoke(app, ["--db", str(seeded_db_path), "ls", "--fields", "*"])
+    assert r.exit_code == 0
+    # Should show all fields
+    assert "Chill Beats" in r.stdout
+    assert "videos/Chill_Beats.webm" in r.stdout
+    assert "thumbnails/Chill_Beats.png" in r.stdout
+
+
+def test_ls_with_fields_wildcard_shows_all_columns(runner, seeded_db_path):
+    r = runner.invoke(app, ["--db", str(seeded_db_path), "ls", "--fields", "*"])
+    assert r.exit_code == 0
+    # Check that column headers are present in the output
+    assert "id" in r.stdout
+    assert "title" in r.stdout
+    assert "video_path" in r.stdout
+    assert "thumbnail_path" in r.stdout
+
+
 def test_ls_invalid_sort_exits(runner, seeded_db_path):
     r = runner.invoke(app, ["--db", str(seeded_db_path), "ls", "--sort", "invalid"])
     assert r.exit_code == 1

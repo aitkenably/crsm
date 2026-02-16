@@ -9,7 +9,8 @@ from rich.table import Table
 from crsm.cli.app import AppContext
 from crsm.repo import CrsmRepo
 
-VALID_FIELDS = {"id", "title"}
+VALID_FIELDS = {"id", "title", "video_path", "thumbnail_path"}
+ALL_FIELDS = ["id", "title", "video_path", "thumbnail_path"]
 VALID_SORT = {"id", "title"}
 
 
@@ -20,7 +21,7 @@ def ls(
     search: str = typer.Option(None, "--search", "-s", help="Filter by title substring"),
     sort: str = typer.Option("id", "--sort", help="Sort by: id or title"),
     desc: bool = typer.Option(False, "--desc", help="Sort descending"),
-    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated columns: id,title"),
+    fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated columns or '*' for all: id,title,video_path,thumbnail_path"),
 ):
     """
        List CRSM items.
@@ -34,17 +35,21 @@ def ls(
          crsm ls --search "Chill"
          crsm ls --sort title --desc
          crsm ls --fields id,title
+         crsm ls --fields '*'
     """
     if sort not in VALID_SORT:
         print(f"[red]Error:[/red] Invalid sort value '{sort}'. Must be one of: {', '.join(VALID_SORT)}")
         raise typer.Exit(1)
 
     if fields:
-        field_list = [f.strip() for f in fields.split(",")]
-        invalid_fields = set(field_list) - VALID_FIELDS
-        if invalid_fields:
-            print(f"[red]Error:[/red] Invalid field(s): {', '.join(invalid_fields)}. Valid fields: {', '.join(VALID_FIELDS)}")
-            raise typer.Exit(1)
+        if fields.strip() == "*":
+            field_list = ALL_FIELDS
+        else:
+            field_list = [f.strip() for f in fields.split(",")]
+            invalid_fields = set(field_list) - VALID_FIELDS
+            if invalid_fields:
+                print(f"[red]Error:[/red] Invalid field(s): {', '.join(invalid_fields)}. Valid fields: {', '.join(VALID_FIELDS)}")
+                raise typer.Exit(1)
     else:
         field_list = ["id", "title"]
 

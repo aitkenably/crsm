@@ -24,7 +24,7 @@ class CrsmRepo:
         if sort_by not in ("id", "title"):
             raise ValueError(f"Invalid sort_by value: {sort_by}")
 
-        query = "SELECT id, title FROM videos"
+        query = "SELECT id, title, video_path, thumbnail_path FROM videos"
         params: list = []
 
         if search:
