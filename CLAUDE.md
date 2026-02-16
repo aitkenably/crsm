@@ -55,9 +55,9 @@ Config Layer (config.py)      <- TOML config, XDG-compliant paths
 
 ## Current Implementation Status
 
-- **Implemented:** `crsm ls` command (lists videos with Rich tables)
-- **Stubbed:** `add`, `rm`, `live` commands (files exist but are empty)
-- **Database schema:** videos table with id and title columns
+- **Implemented:** `crsm ls` (lists videos), `crsm add` (imports videos, copies by default), `crsm rm` (removes videos)
+- **Stubbed:** `live` command
+- **Database schema:** videos table with id, title, video_path, thumbnail_path columns
 
 ## Testing
 

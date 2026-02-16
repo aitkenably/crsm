@@ -33,7 +33,7 @@ def add(
         None, "--title", "-t", help="Title for the video (default: derived from filename)"
     ),
     move: bool = typer.Option(
-        True, "--move/--copy", help="Move file (default) or copy it"
+        False, "--move/--copy", help="Move file or copy it (default)"
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Overwrite existing entry"
@@ -49,7 +49,7 @@ def add(
 
     Examples:
       crsm add /path/to/video.webm
-      crsm add /path/to/video.webm --copy
+      crsm add /path/to/video.webm --move
       crsm add /path/to/video.webm --title "My Video"
       crsm add /path/to/video.webm --force
       crsm add /path/to/video.webm --thumb-at 120

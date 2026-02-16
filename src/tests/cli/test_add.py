@@ -51,8 +51,8 @@ def test_add_unsupported_extension_exits_1(runner, temp_db_path, library_path, t
     assert "Unsupported file type" in r.stdout
 
 
-def test_add_with_move_default(runner, temp_db_path, library_path, source_video):
-    """Test that --move is the default behavior."""
+def test_add_with_copy_default(runner, temp_db_path, library_path, source_video):
+    """Test that --copy is the default behavior."""
     # Mock ffmpeg to succeed
     with patch("crsm.library.subprocess.run") as mock_run:
         mock_run.return_value.returncode = 0
@@ -71,8 +71,8 @@ def test_add_with_move_default(runner, temp_db_path, library_path, source_video)
     assert "Added:" in r.stdout
     assert "test_video.webm" in r.stdout
 
-    # Source should be moved (deleted)
-    assert not source_video.exists()
+    # Source should still exist (copy is default)
+    assert source_video.exists()
 
     # Destination should exist
     dest = library_path / "videos" / "test_video.webm"
@@ -85,8 +85,8 @@ def test_add_with_move_default(runner, temp_db_path, library_path, source_video)
     assert video["title"] == "test video"
 
 
-def test_add_with_copy_flag(runner, temp_db_path, library_path, source_video):
-    """Test that --copy preserves the source file."""
+def test_add_with_move_flag(runner, temp_db_path, library_path, source_video):
+    """Test that --move deletes the source file."""
     with patch("crsm.library.subprocess.run") as mock_run:
         mock_run.return_value.returncode = 0
         thumb_path = library_path / "thumbnails" / "test_video.png"
@@ -96,15 +96,15 @@ def test_add_with_copy_flag(runner, temp_db_path, library_path, source_video):
         r = runner.invoke(app, [
             "--db", str(temp_db_path),
             "--library", str(library_path),
-            "add", str(source_video), "--copy"
+            "add", str(source_video), "--move"
         ])
 
     assert r.exit_code == 0
 
-    # Source should still exist
-    assert source_video.exists()
+    # Source should be deleted (moved)
+    assert not source_video.exists()
 
-    # Destination should also exist
+    # Destination should exist
     dest = library_path / "videos" / "test_video.webm"
     assert dest.exists()
 
