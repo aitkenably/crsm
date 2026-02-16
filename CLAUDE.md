@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 CRSM (coder-radio Station Manager) is a Python CLI for managing a local library of video files and thumbnails. It handles video ingestion, thumbnail generation, SQLite metadata storage, and AWS S3 publishing.
 
+## System Instructions 
+
+Please use the Python interpreter at .venv/bin/python3 for all Python-related tasks.
+
 ## Development Commands
 
 ```bash
