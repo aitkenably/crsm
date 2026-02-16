@@ -69,7 +69,7 @@ def test_add_with_copy_default(runner, temp_db_path, library_path, source_video)
 
     assert r.exit_code == 0
     assert "Added:" in r.stdout
-    assert "test_video.webm" in r.stdout
+    assert "videos/test_video.webm" in r.stdout
 
     # Source should still exist (copy is default)
     assert source_video.exists()
@@ -78,11 +78,13 @@ def test_add_with_copy_default(runner, temp_db_path, library_path, source_video)
     dest = library_path / "videos" / "test_video.webm"
     assert dest.exists()
 
-    # DB entry should exist
+    # DB entry should exist with relative paths
     repo = CrsmRepo(temp_db_path)
-    video = repo.get_video_by_path("test_video.webm")
+    video = repo.get_video_by_path("videos/test_video.webm")
     assert video is not None
     assert video["title"] == "test video"
+    assert video["video_path"] == "videos/test_video.webm"
+    assert video["thumbnail_path"] == "thumbnails/test_video.png"
 
 
 def test_add_with_move_flag(runner, temp_db_path, library_path, source_video):
@@ -128,7 +130,7 @@ def test_add_with_custom_title(runner, temp_db_path, library_path, source_video)
     assert '"My Custom Title"' in r.stdout
 
     repo = CrsmRepo(temp_db_path)
-    video = repo.get_video_by_path("test_video.webm")
+    video = repo.get_video_by_path("videos/test_video.webm")
     assert video["title"] == "My Custom Title"
 
 
@@ -193,7 +195,7 @@ def test_add_duplicate_with_force_succeeds(runner, temp_db_path, library_path, t
 
     # Verify entry exists
     repo = CrsmRepo(temp_db_path)
-    original = repo.get_video_by_path("my_video.webm")
+    original = repo.get_video_by_path("videos/my_video.webm")
     assert original is not None
     original_id = original["id"]
 
@@ -215,7 +217,7 @@ def test_add_duplicate_with_force_succeeds(runner, temp_db_path, library_path, t
     assert repo.get_video_by_id(original_id) is None
 
     # New entry should exist
-    new_video = repo.get_video_by_path("my_video.webm")
+    new_video = repo.get_video_by_path("videos/my_video.webm")
     assert new_video is not None
     assert new_video["title"] == "New Title"
 
@@ -244,7 +246,7 @@ def test_thumbnail_failure_rolls_back_video(runner, temp_db_path, library_path, 
 
     # No DB entry should exist
     repo = CrsmRepo(temp_db_path)
-    assert repo.get_video_by_path("test_video.webm") is None
+    assert repo.get_video_by_path("videos/test_video.webm") is None
 
 
 def test_add_derives_title_from_filename(runner, temp_db_path, library_path, tmp_path):
@@ -267,5 +269,5 @@ def test_add_derives_title_from_filename(runner, temp_db_path, library_path, tmp
     assert r.exit_code == 0
 
     repo = CrsmRepo(temp_db_path)
-    video = repo.get_video_by_path("my_cool_video_2024.webm")
+    video = repo.get_video_by_path("videos/my_cool_video_2024.webm")
     assert video["title"] == "my cool video 2024"

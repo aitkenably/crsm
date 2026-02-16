@@ -74,14 +74,16 @@ def add(
         print(f"Supported types: {', '.join(sorted(SUPPORTED_VIDEO_EXTENSIONS))}")
         raise typer.Exit(1)
 
-    # Determine filenames and title
+    # Determine filenames and relative paths
     video_filename, thumb_filename = get_destination_filenames(source)
+    video_path = library.get_relative_video_path(video_filename)
+    thumb_path = library.get_relative_thumbnail_path(thumb_filename)
     final_title = title if title else derive_title_from_filename(video_filename)
 
     # Check for conflicts
-    existing = repo.get_video_by_path(video_filename)
+    existing = repo.get_video_by_path(video_path)
     if existing and not force:
-        print(f"[red]Error:[/red] Video already exists: {video_filename}")
+        print(f"[red]Error:[/red] Video already exists: {video_path}")
         print(f"Use --force to overwrite the existing entry (ID: {existing['id']})")
         raise typer.Exit(1)
 
@@ -110,7 +112,7 @@ def add(
         # Rollback: delete the imported video
         logging.error(f"Thumbnail generation failed, rolling back video import")
         try:
-            library.delete_video(video_filename)
+            library.delete_file(video_path)
         except OSError as rollback_error:
             logging.error(f"Rollback failed: {rollback_error}")
         print(f"[red]Error:[/red] Thumbnail generation failed: {e}")
@@ -119,17 +121,17 @@ def add(
         print(f"[red]Error:[/red] {e}")
         raise typer.Exit(2)
 
-    # Insert database entry
+    # Insert database entry with relative paths
     try:
-        video_id = repo.add_video(final_title, video_filename, thumb_filename)
+        video_id = repo.add_video(final_title, video_path, thumb_path)
     except sqlite3.Error as e:
         # Rollback: delete video and thumbnail
         logging.error(f"Database insert failed, rolling back files")
         try:
-            library.delete_video_files(video_filename, thumb_filename)
+            library.delete_video_files(video_path, thumb_path)
         except OSError as rollback_error:
             logging.error(f"Rollback failed: {rollback_error}")
         print(f"[red]Database error:[/red] {e}")
         raise typer.Exit(2)
 
-    print(f'Added: "{final_title}" (video: {video_filename}, thumbnail: {thumb_filename})')
+    print(f'Added: "{final_title}" (video: {video_path}, thumbnail: {thumb_path})')

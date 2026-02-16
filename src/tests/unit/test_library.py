@@ -102,7 +102,7 @@ class TestCrsmLibraryDeleteVideoFiles:
         assert video_file.exists()
         assert thumb_file.exists()
 
-        errors = library.delete_video_files("test_video.webm", "test_video.png")
+        errors = library.delete_video_files("videos/test_video.webm", "thumbnails/test_video.png")
 
         assert errors == []
         assert not video_file.exists()
@@ -111,7 +111,7 @@ class TestCrsmLibraryDeleteVideoFiles:
     def test_delete_video_files_missing_files(self, tmp_path):
         library = CrsmLibrary(tmp_path)
 
-        errors = library.delete_video_files("missing.webm", "missing.png")
+        errors = library.delete_video_files("videos/missing.webm", "thumbnails/missing.png")
 
         # Missing files should not produce errors, just warnings
         assert errors == []
@@ -122,7 +122,7 @@ class TestCrsmLibraryDeleteVideoFiles:
         # Delete only the video file first
         video_file.unlink()
 
-        errors = library.delete_video_files("test_video.webm", "test_video.png")
+        errors = library.delete_video_files("videos/test_video.webm", "thumbnails/test_video.png")
 
         # No errors - missing video just logged as warning
         assert errors == []
@@ -136,7 +136,7 @@ class TestCrsmLibraryDeleteVideoFiles:
 
         monkeypatch.setattr(Path, "unlink", mock_unlink)
 
-        errors = library.delete_video_files("test_video.webm", "test_video.png")
+        errors = library.delete_video_files("videos/test_video.webm", "thumbnails/test_video.png")
 
         assert len(errors) == 2
         assert "video" in errors[0].lower()

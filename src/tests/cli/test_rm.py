@@ -14,9 +14,9 @@ def seeded_db_with_duplicates(tmp_path: Path) -> Path:
     db_path = tmp_path / "test.db"
     ensure_schema(db_path)
     repo = CrsmRepo(db_path)
-    repo.add_video("Unique Title", "Unique_Title.webm", "Unique_Title.png")
-    repo.add_video("Duplicate Title", "Duplicate_Title.webm", "Duplicate_Title.png")
-    repo.add_video("Duplicate Title", "Duplicate_Title.webm", "Duplicate_Title.png")
+    repo.add_video("Unique Title", "videos/Unique_Title.webm", "thumbnails/Unique_Title.png")
+    repo.add_video("Duplicate Title", "videos/Duplicate_Title.webm", "thumbnails/Duplicate_Title.png")
+    repo.add_video("Duplicate Title", "videos/Duplicate_Title.webm", "thumbnails/Duplicate_Title.png")
     return db_path
 
 
@@ -124,10 +124,10 @@ def seeded_db_with_files(tmp_path: Path) -> tuple[Path, Path]:
     video_file.write_text("fake video content")
     thumb_file.write_text("fake thumbnail content")
 
-    # Set up database
+    # Set up database with relative paths
     ensure_schema(db_path)
     repo = CrsmRepo(db_path)
-    repo.add_video("Test Video", "Test_Video.webm", "Test_Video.png")
+    repo.add_video("Test Video", "videos/Test_Video.webm", "thumbnails/Test_Video.png")
 
     return db_path, library_path
 
@@ -182,7 +182,7 @@ def test_rm_missing_files_still_succeeds(runner, tmp_path):
 
     ensure_schema(db_path)
     repo = CrsmRepo(db_path)
-    repo.add_video("Ghost Video", "ghost.webm", "ghost.png")
+    repo.add_video("Ghost Video", "videos/ghost.webm", "thumbnails/ghost.png")
 
     r = runner.invoke(app, [
         "--db", str(db_path),

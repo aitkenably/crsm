@@ -135,16 +135,16 @@ def test_remove_video_returns_false_when_not_found(seeded_db_path):
 def test_get_video_by_path_found(seeded_db_path):
     repo = CrsmRepo(seeded_db_path)
 
-    video = repo.get_video_by_path("Chill_Beats.webm")
+    video = repo.get_video_by_path("videos/Chill_Beats.webm")
     assert video is not None
     assert video["title"] == "Chill Beats"
-    assert video["video_path"] == "Chill_Beats.webm"
+    assert video["video_path"] == "videos/Chill_Beats.webm"
 
 
 def test_get_video_by_path_not_found(seeded_db_path):
     repo = CrsmRepo(seeded_db_path)
 
-    video = repo.get_video_by_path("nonexistent.webm")
+    video = repo.get_video_by_path("videos/nonexistent.webm")
     assert video is None
 
 

@@ -21,8 +21,8 @@ def temp_db_path(tmp_path: Path) -> Path:
 @pytest.fixture()
 def seeded_db_path(temp_db_path: Path) -> Path:
     repo = CrsmRepo(temp_db_path)
-    repo.add_video("Chill Beats", "Chill_Beats.webm", "Chill_Beats.png")
-    repo.add_video("Study Music 2", "Study_Music_2.webm", "Study_Music_2.png")
-    repo.add_video("Alpha Waves", "Alpha_Waves.webm", "Alpha_Waves.png")
-    repo.add_video("Zen Garden", "Zen_Garden.webm", "Zen_Garden.png")
+    repo.add_video("Chill Beats", "videos/Chill_Beats.webm", "thumbnails/Chill_Beats.png")
+    repo.add_video("Study Music 2", "videos/Study_Music_2.webm", "thumbnails/Study_Music_2.png")
+    repo.add_video("Alpha Waves", "videos/Alpha_Waves.webm", "thumbnails/Alpha_Waves.png")
+    repo.add_video("Zen Garden", "videos/Zen_Garden.webm", "thumbnails/Zen_Garden.png")
     return temp_db_path

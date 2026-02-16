@@ -30,6 +30,18 @@ class CrsmLibrary:
         """Get the full path to a thumbnail file."""
         return self.thumbnails_dir / thumbnail_filename
 
+    def get_full_path(self, relative_path: str) -> Path:
+        """Get the full path from a library-relative path."""
+        return self.library_path / relative_path
+
+    def get_relative_video_path(self, video_filename: str) -> str:
+        """Get the relative path for a video file (e.g., 'videos/filename.webm')."""
+        return f"videos/{video_filename}"
+
+    def get_relative_thumbnail_path(self, thumb_filename: str) -> str:
+        """Get the relative path for a thumbnail file (e.g., 'thumbnails/filename.png')."""
+        return f"thumbnails/{thumb_filename}"
+
     def video_exists(self, video_filename: str) -> bool:
         """Check if a video file exists."""
         return self.get_video_path(video_filename).exists()
@@ -70,9 +82,13 @@ class CrsmLibrary:
             logging.warning(f"Thumbnail file not found: {thumbnail_path}")
             return False
 
-    def delete_video_files(self, video_filename: str, thumbnail_filename: str) -> list[str]:
+    def delete_video_files(self, video_path: str, thumbnail_path: str) -> list[str]:
         """
         Delete both video and thumbnail files.
+
+        Args:
+            video_path: Relative path to video (e.g., 'videos/filename.webm')
+            thumbnail_path: Relative path to thumbnail (e.g., 'thumbnails/filename.png')
 
         Returns a list of error messages for any failures.
         Missing files are not considered errors (just logged as warnings).
@@ -80,20 +96,36 @@ class CrsmLibrary:
         errors = []
 
         try:
-            self.delete_video(video_filename)
+            self.delete_file(video_path)
         except OSError as e:
-            error_msg = f"Failed to delete video file {video_filename}: {e}"
+            error_msg = f"Failed to delete video file {video_path}: {e}"
             errors.append(error_msg)
             logging.error(error_msg)
 
         try:
-            self.delete_thumbnail(thumbnail_filename)
+            self.delete_file(thumbnail_path)
         except OSError as e:
-            error_msg = f"Failed to delete thumbnail file {thumbnail_filename}: {e}"
+            error_msg = f"Failed to delete thumbnail file {thumbnail_path}: {e}"
             errors.append(error_msg)
             logging.error(error_msg)
 
         return errors
+
+    def delete_file(self, relative_path: str) -> bool:
+        """
+        Delete a file by its relative path.
+
+        Returns True if file was deleted, False if it didn't exist.
+        Raises OSError on deletion failure.
+        """
+        full_path = self.get_full_path(relative_path)
+        if full_path.exists():
+            full_path.unlink()
+            logging.info(f"Deleted file: {full_path}")
+            return True
+        else:
+            logging.warning(f"File not found: {full_path}")
+            return False
 
     def ensure_directories(self) -> None:
         """Create videos and thumbnails directories if they don't exist."""
