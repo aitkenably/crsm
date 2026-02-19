@@ -18,9 +18,17 @@ class ConfigError(Exception):
 
 
 @dataclass(frozen=True)
+class S3Config:
+    bucket: Optional[str] = None
+    prefix: Optional[str] = None
+    public_base_url: Optional[str] = None
+
+
+@dataclass(frozen=True)
 class AppConfig:
     db_path: Path
     library_path: Path
+    s3: S3Config = S3Config()
 
 
 def load_config(path: Optional[Path] = None) -> AppConfig:
@@ -31,10 +39,19 @@ def load_config(path: Optional[Path] = None) -> AppConfig:
     db_path = DEFAULT_DB_PATH
     library_path = DEFAULT_LIBRARY_PATH
 
+    s3_config = S3Config()
+
     if cfg_path.exists():
         data = tomllib.loads(cfg_path.read_text("utf-8"))
         db_path = Path(data.get("db", {}).get("path", db_path))
         library_path = Path(data.get("library", {}).get("path", library_path))
+
+        s3_data = data.get("s3", {})
+        s3_config = S3Config(
+            bucket=s3_data.get("bucket"),
+            prefix=s3_data.get("prefix"),
+            public_base_url=s3_data.get("public_base_url"),
+        )
 
     # Validate that required directories exist
     if not db_path.parent.exists():
@@ -42,5 +59,5 @@ def load_config(path: Optional[Path] = None) -> AppConfig:
     if not library_path.exists():
         raise ConfigError(f"Library directory does not exist: {library_path}")
 
-    return AppConfig(db_path=db_path, library_path=library_path)
+    return AppConfig(db_path=db_path, library_path=library_path, s3=s3_config)
 

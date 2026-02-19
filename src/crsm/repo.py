@@ -84,3 +84,11 @@ class CrsmRepo:
                 (title, video_path, thumbnail_path, video_id),
             )
             return cur.rowcount > 0
+
+    def get_all_videos(self) -> list:
+        """Get all videos from the database (no pagination)."""
+        with get_connection(self.db_path) as conn:
+            cur = conn.execute(
+                "SELECT id, title, video_path, thumbnail_path FROM videos ORDER BY id"
+            )
+            return cur.fetchall()
