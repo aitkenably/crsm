@@ -1,5 +1,8 @@
 import logging
 
+from rich.logging import RichHandler
+
+
 def configure_logging(verbose: int = 0) -> None:
     level = logging.WARNING
     if verbose == 1:
@@ -7,4 +10,8 @@ def configure_logging(verbose: int = 0) -> None:
     elif verbose >= 2:
         level = logging.DEBUG
 
-    logging.basicConfig(level=level, format="%(levelname)s %(message)s")
+    logging.basicConfig(
+        level=level,
+        format="%(message)s",
+        handlers=[RichHandler(rich_tracebacks=True, show_path=False)],
+    )

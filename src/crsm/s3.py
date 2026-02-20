@@ -55,23 +55,26 @@ def get_s3_client():
         raise
 
 
-def compute_md5(file_path: Path) -> str:
+SHA256_TAG_KEY = "sha256"
+
+
+def compute_sha256(file_path: Path) -> str:
     """
-    Compute MD5 hash of a file in ETag format.
+    Compute SHA256 hash of a file.
 
     Returns:
-        MD5 hash as a hex string (without quotes)
+        SHA256 hash as a hex string
     """
-    md5_hash = hashlib.md5()
+    sha256_hash = hashlib.sha256()
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
-            md5_hash.update(chunk)
-    return md5_hash.hexdigest()
+            sha256_hash.update(chunk)
+    return sha256_hash.hexdigest()
 
 
 def needs_upload(client, bucket: str, key: str, local_path: Path) -> bool:
     """
-    Check if a file needs to be uploaded by comparing ETags.
+    Check if a file needs to be uploaded by comparing SHA256 hash stored as object tag.
 
     Args:
         client: boto3 S3 client
@@ -83,12 +86,16 @@ def needs_upload(client, bucket: str, key: str, local_path: Path) -> bool:
         True if file needs upload, False if remote matches local
     """
     try:
-        response = client.head_object(Bucket=bucket, Key=key)
-        remote_etag = response["ETag"].strip('"')
-        local_md5 = compute_md5(local_path)
-        return remote_etag != local_md5
+        response = client.get_object_tagging(Bucket=bucket, Key=key)
+        tags = {tag["Key"]: tag["Value"] for tag in response.get("TagSet", [])}
+        remote_hash = tags.get(SHA256_TAG_KEY)
+        if not remote_hash:
+            # Object exists but has no sha256 tag - re-upload to add tag
+            return True
+        local_hash = compute_sha256(local_path)
+        return remote_hash != local_hash
     except ClientError as e:
-        if e.response["Error"]["Code"] == "404":
+        if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
             return True
         raise
 
@@ -118,17 +125,23 @@ def sync_file(
         logging.debug(f"Skipping {key} (unchanged)")
         return False
 
+    local_hash = compute_sha256(local_path)
+
     if dry_run:
         logging.info(f"Would upload {local_path} -> s3://{bucket}/{key}")
         return True
 
     try:
-        client.upload_file(str(local_path), bucket, key)
+        client.upload_file(
+            str(local_path),
+            bucket,
+            key,
+            ExtraArgs={"Tagging": f"{SHA256_TAG_KEY}={local_hash}"},
+        )
         logging.info(f"Uploaded {local_path} -> s3://{bucket}/{key}")
         return True
     except ClientError as e:
         raise S3UploadError(f"Failed to upload {local_path}: {e}")
-
 
 @dataclass
 class SyncResult:
@@ -187,18 +200,6 @@ class S3Publisher:
             video_path = library_path / video["video_path"]
             thumbnail_path = library_path / video["thumbnail_path"]
 
-            # Sync video file
-            video_key = self._build_key("videos", video_path.name)
-            try:
-                if sync_file(self.client, self.bucket, video_key, video_path, dry_run):
-                    result.uploaded += 1
-                else:
-                    result.skipped += 1
-            except S3UploadError as e:
-                result.errors.append(str(e))
-            if progress_callback:
-                progress_callback(video_path.name, 1)
-
             # Sync thumbnail file
             thumbnail_key = self._build_key("thumbnails", thumbnail_path.name)
             try:
@@ -210,6 +211,18 @@ class S3Publisher:
                 result.errors.append(str(e))
             if progress_callback:
                 progress_callback(thumbnail_path.name, 1)
+
+            # Sync video file
+            video_key = self._build_key("videos", video_path.name)
+            try:
+                if sync_file(self.client, self.bucket, video_key, video_path, dry_run):
+                    result.uploaded += 1
+                else:
+                    result.skipped += 1
+            except S3UploadError as e:
+                result.errors.append(str(e))
+            if progress_callback:
+                progress_callback(video_path.name, 1)
 
         # Sync catalog if provided
         if catalog_path and catalog_path.exists():

@@ -13,7 +13,8 @@ pytest.importorskip("botocore")
 from botocore.exceptions import ClientError
 
 from crsm.s3 import (
-    compute_md5,
+    SHA256_TAG_KEY,
+    compute_sha256,
     needs_upload,
     sync_file,
     S3Publisher,
@@ -24,26 +25,26 @@ from crsm.s3 import (
 )
 
 
-def test_compute_md5(tmp_path):
+def test_compute_sha256(tmp_path):
     test_file = tmp_path / "test.txt"
     test_file.write_text("hello world")
 
-    result = compute_md5(test_file)
+    result = compute_sha256(test_file)
 
-    # Verify against known MD5 of "hello world"
-    expected = hashlib.md5(b"hello world").hexdigest()
+    # Verify against known SHA256 of "hello world" (hex encoded)
+    expected = hashlib.sha256(b"hello world").hexdigest()
     assert result == expected
 
 
-def test_compute_md5_large_file(tmp_path):
+def test_compute_sha256_large_file(tmp_path):
     # Test chunked reading with larger file
     test_file = tmp_path / "large.bin"
     content = b"x" * 10000
     test_file.write_bytes(content)
 
-    result = compute_md5(test_file)
+    result = compute_sha256(test_file)
 
-    expected = hashlib.md5(content).hexdigest()
+    expected = hashlib.sha256(content).hexdigest()
     assert result == expected
 
 
@@ -51,7 +52,7 @@ def test_needs_upload_file_not_exists():
     mock_client = Mock()
 
     error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
-    mock_client.head_object.side_effect = ClientError(error_response, "HeadObject")
+    mock_client.get_object_tagging.side_effect = ClientError(error_response, "GetObjectTagging")
 
     result = needs_upload(mock_client, "bucket", "key", Path("/fake/path"))
     assert result is True
@@ -60,13 +61,16 @@ def test_needs_upload_file_not_exists():
 def test_needs_upload_file_unchanged(tmp_path):
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
-    local_md5 = compute_md5(test_file)
+    local_hash = compute_sha256(test_file)
 
     mock_client = Mock()
-    mock_client.head_object.return_value = {"ETag": f'"{local_md5}"'}
+    mock_client.get_object_tagging.return_value = {
+        "TagSet": [{"Key": SHA256_TAG_KEY, "Value": local_hash}]
+    }
 
     result = needs_upload(mock_client, "bucket", "key", test_file)
     assert result is False
+    mock_client.get_object_tagging.assert_called_with(Bucket="bucket", Key="key")
 
 
 def test_needs_upload_file_changed(tmp_path):
@@ -74,7 +78,21 @@ def test_needs_upload_file_changed(tmp_path):
     test_file.write_text("new content")
 
     mock_client = Mock()
-    mock_client.head_object.return_value = {"ETag": '"different_md5_hash"'}
+    mock_client.get_object_tagging.return_value = {
+        "TagSet": [{"Key": SHA256_TAG_KEY, "Value": "different_hash"}]
+    }
+
+    result = needs_upload(mock_client, "bucket", "key", test_file)
+    assert result is True
+
+
+def test_needs_upload_no_tag(tmp_path):
+    """Files without sha256 tag should be re-uploaded to add tag."""
+    test_file = tmp_path / "test.txt"
+    test_file.write_text("content")
+
+    mock_client = Mock()
+    mock_client.get_object_tagging.return_value = {"TagSet": []}
 
     result = needs_upload(mock_client, "bucket", "key", test_file)
     assert result is True
@@ -83,10 +101,12 @@ def test_needs_upload_file_changed(tmp_path):
 def test_sync_file_skips_unchanged(tmp_path):
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
-    local_md5 = compute_md5(test_file)
+    local_hash = compute_sha256(test_file)
 
     mock_client = Mock()
-    mock_client.head_object.return_value = {"ETag": f'"{local_md5}"'}
+    mock_client.get_object_tagging.return_value = {
+        "TagSet": [{"Key": SHA256_TAG_KEY, "Value": local_hash}]
+    }
 
     result = sync_file(mock_client, "bucket", "key", test_file)
 
@@ -97,16 +117,22 @@ def test_sync_file_skips_unchanged(tmp_path):
 def test_sync_file_uploads_new_file(tmp_path):
     test_file = tmp_path / "test.txt"
     test_file.write_text("content")
+    local_hash = compute_sha256(test_file)
 
     mock_client = Mock()
     # Simulate 404 - file doesn't exist
     error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
-    mock_client.head_object.side_effect = ClientError(error_response, "HeadObject")
+    mock_client.get_object_tagging.side_effect = ClientError(error_response, "GetObjectTagging")
 
     result = sync_file(mock_client, "bucket", "key", test_file)
 
     assert result is True
-    mock_client.upload_file.assert_called_once_with(str(test_file), "bucket", "key")
+    mock_client.upload_file.assert_called_once_with(
+        str(test_file),
+        "bucket",
+        "key",
+        ExtraArgs={"Tagging": f"{SHA256_TAG_KEY}={local_hash}"},
+    )
 
 
 def test_sync_file_dry_run(tmp_path):
@@ -115,7 +141,7 @@ def test_sync_file_dry_run(tmp_path):
 
     mock_client = Mock()
     error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
-    mock_client.head_object.side_effect = ClientError(error_response, "HeadObject")
+    mock_client.get_object_tagging.side_effect = ClientError(error_response, "GetObjectTagging")
 
     result = sync_file(mock_client, "bucket", "key", test_file, dry_run=True)
 
@@ -130,7 +156,7 @@ def test_sync_file_upload_error(tmp_path):
     mock_client = Mock()
     # File doesn't exist remotely
     error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
-    mock_client.head_object.side_effect = ClientError(error_response, "HeadObject")
+    mock_client.get_object_tagging.side_effect = ClientError(error_response, "GetObjectTagging")
 
     # Upload fails
     upload_error = {"Error": {"Code": "AccessDenied", "Message": "Access Denied"}}
@@ -160,7 +186,7 @@ def test_s3_publisher_sync_library(tmp_path):
     # Set up mock client
     mock_client = Mock()
     error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
-    mock_client.head_object.side_effect = ClientError(error_response, "HeadObject")
+    mock_client.get_object_tagging.side_effect = ClientError(error_response, "GetObjectTagging")
 
     # Create test files
     videos_dir = tmp_path / "videos"
