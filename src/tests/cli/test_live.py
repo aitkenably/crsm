@@ -33,15 +33,21 @@ def test_live_requires_public_base_url_for_catalog(runner, seeded_db_path, tmp_p
     library_dir = tmp_path / "library"
     library_dir.mkdir()
 
+    # Create empty config to avoid loading user's real config
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("")
+
     r = runner.invoke(
         app,
         [
+            "--config", str(config_file),
             "--db", str(seeded_db_path),
             "--library", str(library_dir),
             "live",
             "--no-sync",
         ],
     )
+
     assert r.exit_code == 1
     assert "Public base URL is required" in r.stdout
 
@@ -50,9 +56,14 @@ def test_live_requires_bucket_for_sync(runner, seeded_db_path, tmp_path):
     library_dir = tmp_path / "library"
     library_dir.mkdir()
 
+    # Create empty config to avoid loading user's real config
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("")
+
     r = runner.invoke(
         app,
         [
+            "--config", str(config_file),
             "--db", str(seeded_db_path),
             "--library", str(library_dir),
             "live",
