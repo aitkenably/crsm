@@ -4,3 +4,8 @@ path = "/opt/crsm/crsm.db"
 
 [library]
 path = "/opt/crsm/library"
+
+[s3]
+bucket = "bucket-name"
+public_base_url = "https://www.example.com"
+prefix = "library"
