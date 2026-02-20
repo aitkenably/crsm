@@ -6,6 +6,7 @@ from typing import Optional
 
 import typer
 from rich import print
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.table import Table
 
 from crsm.repo import CrsmRepo
@@ -103,12 +104,28 @@ def live(
         if dry_run:
             print("[yellow]Dry run mode - no files will be uploaded[/yellow]")
 
-        result = publisher.sync_library(
-            library_path=app_ctx.library_path,
-            videos=videos,
-            catalog_path=catalog_path,
-            dry_run=dry_run,
-        )
+        # Calculate total files: video + thumbnail per video, plus catalog if present
+        total_files = len(videos) * 2 + (1 if catalog_path else 0)
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TextColumn("{task.fields[current_file]}"),
+        ) as progress:
+            task = progress.add_task("Syncing to S3...", total=total_files, current_file="")
+
+            def on_progress(filename: str, advance: int):
+                progress.update(task, advance=advance, current_file=filename)
+
+            result = publisher.sync_library(
+                library_path=app_ctx.library_path,
+                videos=videos,
+                catalog_path=catalog_path,
+                dry_run=dry_run,
+                progress_callback=on_progress,
+            )
 
         # Print summary table
         table = Table(title="Sync Summary")

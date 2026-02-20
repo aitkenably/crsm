@@ -4,7 +4,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 try:
     import boto3
@@ -165,6 +165,7 @@ class S3Publisher:
         videos: list,
         catalog_path: Optional[Path] = None,
         dry_run: bool = False,
+        progress_callback: Optional[Callable[[str, int], None]] = None,
     ) -> SyncResult:
         """
         Sync library files to S3.
@@ -174,6 +175,7 @@ class S3Publisher:
             videos: List of video records to sync
             catalog_path: Optional path to catalog.json file
             dry_run: If True, don't actually upload
+            progress_callback: Optional callback called after each file with (filename, advance_count)
 
         Returns:
             SyncResult with counts of uploaded/skipped/errors
@@ -194,6 +196,8 @@ class S3Publisher:
                     result.skipped += 1
             except S3UploadError as e:
                 result.errors.append(str(e))
+            if progress_callback:
+                progress_callback(video_path.name, 1)
 
             # Sync thumbnail file
             thumbnail_key = self._build_key("thumbnails", thumbnail_path.name)
@@ -204,6 +208,8 @@ class S3Publisher:
                     result.skipped += 1
             except S3UploadError as e:
                 result.errors.append(str(e))
+            if progress_callback:
+                progress_callback(thumbnail_path.name, 1)
 
         # Sync catalog if provided
         if catalog_path and catalog_path.exists():
@@ -215,5 +221,7 @@ class S3Publisher:
                     result.skipped += 1
             except S3UploadError as e:
                 result.errors.append(str(e))
+            if progress_callback:
+                progress_callback("catalog.json", 1)
 
         return result
