@@ -19,7 +19,7 @@ def rm(
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompt"),
 ):
     """
-    Remove a video from the repository.
+    Remove a video from the library.
 
     If the argument is numeric, it's treated as a video ID.
     Otherwise, it's treated as an exact title match.

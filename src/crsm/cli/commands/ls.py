@@ -24,7 +24,7 @@ def ls(
     fields: str = typer.Option(None, "--fields", "-f", help="Comma-separated columns or '*' for all: id,title,video_path,thumbnail_path"),
 ):
     """
-       List CRSM items.
+       List videos in the library.
 
        Displays items stored in the CRSM database, ordered by most recent
        first. By default, results are shown in a human-readable table.

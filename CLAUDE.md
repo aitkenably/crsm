@@ -72,5 +72,4 @@ Tests use pytest with fixtures defined in `src/tests/conftest.py`:
 
 ## Tech Stack
 
-- Python 3.11+, Typer (CLI), Rich (output), SQLite3, TOML config
-- Planned: ffmpeg (thumbnails), boto3 (S3 sync)
+- Python 3.11+, Typer (CLI), Rich (output), SQLite3, TOML config, ffmpeg (thumbnails), boto3 (S3 sync)
