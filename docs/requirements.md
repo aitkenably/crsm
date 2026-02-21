@@ -243,3 +243,117 @@ Flags:
 * AWS credential or permission failure → exit 2
 * Upload failure → exit 2
 * Catalog write failure → exit 2
+
+----- 
+## `crsm play` — Play a video from the catalog
+
+### Purpose
+
+Launch a video file from the catalog in the system’s default application for that file type.
+
+This command is read-only with respect to the database and repository.
+
+### Synopsis
+
+```bash
+crsm play <id-or-title>
+```
+### Inputs
+
+- `<id-or-title>`:
+  - If numeric: treated as database ID
+  - Otherwise: treated as title match
+
+### Preconditions
+
+- The resolved catalog entry must exist in the SQLite database.
+- The associated video file must exist on disk.
+- If title matches multiple entries:
+  - Fail with exit `1`
+  - Display matching entries
+  - Require using ID
+
+### Side Effects
+
+- Launches the video file using the operating system’s default application.
+
+No files or database entries are modified.
+
+### Behavior
+
+1. Resolve `<id-or-title>` to exactly one DB entry.
+2. Verify the referenced video file exists.
+3. Launch the file using the platform default handler:
+   - macOS: `open <file>`
+   - Linux: `xdg-open <file>`
+   - Windows: `start <file>`
+4. Return immediately after successful launch (do not block on player exit).
+
+### Output (default)
+
+Playing: "<title>"
+
+### Errors
+* Entry not found → exit 1
+* Ambiguous title → exit 1
+* Video file missing → exit 2
+* OS launch failure → exit 2
+* Database failure → exit 2
+
+----
+
+## crsm thumbnail — Inspect (and optionally view) a video thumbnail
+
+### Purpose
+Display metadata for the thumbnail image associated with a catalog entry, including its 
+resolution. Optionally launch the thumbnail image in the system’s default image viewer.
+
+This command is read-only with respect to the database and repository.
+
+### Synopsis
+```bash 
+crsm thumbnail <id-or-title> [--view]
+```
+
+### Inputs
+- <id-or-title>
+    - If numeric: treated as database ID
+    - Otherwise: treated as title match
+  
+Flags:
+- --view. Launch the thumbnail image in the OS default image viewer after printing metadata.
+
+### Preconditions
+* The resolved catalog entry must exist in the SQLite database.
+* The associated thumbnail file must exist on disk.
+* If title matches multiple entries:
+  - Fail with exit 1
+  - Display matching entries
+  - Require using ID
+
+### Side Effects
+
+None by default. With --view, launches the thumbnail image using the operating system’s default application.
+
+No files or database entries are modified.
+
+### Behavior
+* Resolve <id-or-title> to exactly one DB entry.
+* Verify the referenced thumbnail file exists.
+* Read image metadata:
+  - Width (pixels)
+  - Height (pixels)
+  - File size (bytes)
+  - Image format (jpeg/png/etc)
+* Print metadata to stdout.
+* If --view is supplied. Launch thumbnail using platform default handler:
+  - macOS: open <file>
+  - Linux: xdg-open <file>
+  - Windows: start <file>
+* Return immediately after successful launch (do not block on viewer exit). 
+
+### Output (default)
+Thumbnail: thumbnails/example.jpg
+Resolution: 1280x720
+Format: jpeg
+Size: 183 KB
