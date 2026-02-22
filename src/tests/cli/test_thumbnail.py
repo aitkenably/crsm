@@ -59,7 +59,9 @@ def test_thumbnail_by_id_success(runner, seeded_db_with_thumbnail):
         "thumbnail", "1"
     ])
     assert r.exit_code == 0
-    assert "Thumbnail: thumbnails/Test_Video.png" in r.stdout
+    assert "Thumbnail:" in r.stdout
+    # Full path is displayed (may be word-wrapped), check for key components
+    assert "library/thumbnails/Test_Video.png" in r.stdout
     assert "Resolution: 360x240" in r.stdout
     assert "Format: png" in r.stdout
     assert "Size:" in r.stdout
@@ -73,7 +75,8 @@ def test_thumbnail_by_title_success(runner, seeded_db_with_thumbnail):
         "thumbnail", "Test Video"
     ])
     assert r.exit_code == 0
-    assert "Thumbnail: thumbnails/Test_Video.png" in r.stdout
+    assert "Thumbnail:" in r.stdout
+    assert "library/thumbnails/Test_Video.png" in r.stdout
     assert "Resolution: 360x240" in r.stdout
 
 
@@ -162,7 +165,8 @@ def test_thumbnail_view_launches_viewer(mock_popen, runner, seeded_db_with_thumb
         "thumbnail", "1", "--view"
     ])
     assert r.exit_code == 0
-    assert "Thumbnail: thumbnails/Test_Video.png" in r.stdout
+    assert "Thumbnail:" in r.stdout
+    assert "Test_Video.png" in r.stdout
     mock_popen.assert_called_once()
 
 

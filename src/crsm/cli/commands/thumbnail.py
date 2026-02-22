@@ -72,7 +72,7 @@ def thumbnail(
         raise typer.Exit(2)
 
     # Print metadata
-    print(f"Thumbnail: [green]{thumbnail_path}[/green]")
+    print(f"Thumbnail: [green]{full_path}[/green]")
     print(f"Resolution: [green]{metadata['width']}x{metadata['height']}[/green]")
     print(f"Format: [green]{metadata['format']}[/green]")
     print(f"Size: [green]{metadata['size']}[/green]")
