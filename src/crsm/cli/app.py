@@ -103,6 +103,7 @@ def main() -> None:
 
 # Register subcommands
 from crsm.cli.commands.add import add
+from crsm.cli.commands.doctor import doctor
 from crsm.cli.commands.ls import ls
 from crsm.cli.commands.play import play
 from crsm.cli.commands.rm import rm
@@ -110,6 +111,7 @@ from crsm.cli.commands.thumbnail import thumbnail
 from crsm.cli.commands.live import live
 
 app.command("add")(add)
+app.command("doctor")(doctor)
 app.command("ls")(ls)
 app.command("play")(play)
 app.command("rm")(rm)

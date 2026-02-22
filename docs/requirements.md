@@ -316,7 +316,7 @@ crsm thumbnail <id-or-title> [--view]
 ```
 
 ### Inputs
-- <id-or-title>
+- id-or-title
     - If numeric: treated as database ID
     - Otherwise: treated as title match
   
@@ -357,3 +357,107 @@ Thumbnail: thumbnails/example.jpg
 Resolution: 1280x720
 Format: jpeg
 Size: 183 KB
+
+----
+
+## crsm doctor — System and repository health check
+
+### Purpose
+
+Validate configuration, local environment, repository integrity, database consistency, 
+and AWS publishing readiness.
+
+This command performs read-only diagnostics and reports actionable 
+errors and warnings to help prevent failures in other commands such as add and live.
+
+### Synopsis
+
+```bash
+crsm doctor [--no-aws] 
+ ```
+
+### Inputs
+
+Flags:
+* --no-aws  Skip AWS credential and S3 bucket checks.
+
+
+### Behavior 
+The doctor command evaluates the system in the following phases.
+
+Each phase reports individual checks with status:
+* OK
+* ERROR
+
+#### Phase 1: Configuration
+Checks:
+* Config file exists
+* Config file is readable
+* Required keys present:
+  * repository root path
+  * videos directory path
+  * thumbnails directory path
+  * database path
+  * If checking aws:
+    * S3 bucket configured
+    * public base URL configured
+
+Errors in this phase prevent further checks.
+
+#### Phase 2: Filesystem
+Checks:
+* Repository root exists
+* videos directory exists
+* thumbnails directory exists
+* All directories writable
+* Database file exists or parent directory writable
+
+#### Phase 3: External Tooling
+Checks:
+* ffmpeg present in PATH
+* ffmpeg executable
+
+####  Phase 4: Database Integrity
+Checks:
+* SQLite database opens successfully
+* Required tables exist
+
+#### Phase 5: Repository Consistency
+Cross-check filesystem against database:
+* Videos on disk missing from DB (orphaned videos)
+* Thumbnails on disk missing from DB (orphaned thumbnails)
+* Each DB video entry references an existing video file
+* Each DB video entry references an existing thumbnail
+* Detect null video or thumbnail fields
+  
+#### Phase 6: AWS Publishing Readiness (skipped with --no-aws)
+Checks:
+* AWS credentials available
+    * STS GetCallerIdentity succeeds
+* S3 bucket reachable (head call)
+
+### Output 
+
+Example Doctor Report
+
+  [OK] Config file loaded
+  [OK] Repository directories writable
+  [ERROR] orphaned video files: videos/orphaned_video.webm
+  [ERROR] Missing thumbnail for ID 42
+  [OK] ffmpeg available
+  [OK] AWS credentials valid
+  
+Summary:
+  Errors: 1
+  Warnings: 2
+
+Exit Codes
+0 — no issues detected
+1 — errors detected
+
+### Design Notes
+* Doctor must not modify catalog entries.
+* Doctor must not delete files.
+* Checks should continue after failures when possible.
+
+----
