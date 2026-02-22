@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+from importlib.metadata import version
 
 import typer
 from dataclasses import dataclass
@@ -16,6 +17,12 @@ from crsm.db import ensure_schema
 from crsm.logging_utils import configure_logging
 
 app = typer.Typer(no_args_is_help=True, help="coder-radio Station Manager CLI")
+
+
+def version_callback(value: bool) -> None:
+    if value:
+        print(f"crsm {version('crsm')}")
+        raise typer.Exit()
 
 
 @dataclass
@@ -39,6 +46,9 @@ def main_callback(
     ),
     verbose: int = typer.Option(
         0, "--verbose", "-v", count=True, help="Increase verbosity (-v, -vv)"
+    ),
+    version: Optional[bool] = typer.Option(
+        None, "--version", callback=version_callback, is_eager=True, help="Show version and exit"
     ),
 ):
     configure_logging(verbose=verbose)
