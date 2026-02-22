@@ -96,12 +96,14 @@ from crsm.cli.commands.add import add
 from crsm.cli.commands.ls import ls
 from crsm.cli.commands.play import play
 from crsm.cli.commands.rm import rm
+from crsm.cli.commands.thumbnail import thumbnail
 from crsm.cli.commands.live import live
 
 app.command("add")(add)
 app.command("ls")(ls)
 app.command("play")(play)
 app.command("rm")(rm)
+app.command("thumbnail")(thumbnail)
 app.command("live")(live)
 
 
